@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guess the Number Game</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      font-family: 'Arial', sans-serif;
+    }
+    .game-container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 2rem;
+      border-radius: 1rem;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+      backdrop-filter: blur(10px);
+      background: rgba(255,255,255,0.1);
+    }
+    .feedback {
+      transition: all 0.5s ease;
+      font-size: 1.2rem;
+    }
+    .hint-button {
+      transition: transform 0.2s;
+    }
+    .hint-button:hover {
+      transform: scale(1.05);
+    }
+    .attempts-display {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 1rem;
+    }
+    .score-bar {
+      height: 10px;
+      background: rgba(255,255,255,0.5);
+      border-radius: 5px;
+      overflow: hidden;
+      margin-top: 0.5rem;
+    }
+    .score-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #ff6b6b, #ffd93d, #6bcf7f);
+      transition: width 0.5s ease;
+    }
+    .animate-bounce {
+      animation: bounce 0.6s;
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 flex items-center justify-center min-h-screen">
+  <div class="game-container text-white">
+    <h1 class="text-3xl font-bold text-center mb-6">Guess the Number!</h1>
+    <p class="text-center mb-4 text-lg">I'm thinking of a number between 1 and 100. Can you guess it?</p>
+    
+    <div class="attempts-display">
+      <div>Attempts: <span id="attempts" class="font-bold">0</span></div>
+      <div>Score: <span id="score" class="font-bold">100</span></div>
+    </div>
+    <div class="score-bar">
+      <div class="score-fill" id="scoreFill" style="width: 100%;"></div>
+    </div>
+
+    <input type="number" id="guessInput" min="1" max="100" class="w-full p-3 rounded-lg mb-4 text-gray-800 focus:outline-none focus:ring-2 focus:ring-white">
+    <div class="flex justify-center space-x-4">
+      <button id="guessButton" class="bg-green-500 hover:bg-green-600 px-6 py-2 rounded-lg font-semibold transition duration-300">Guess</button>
+      <button id="resetButton" class="bg-red-500 hover:bg-red-600 px-6 py-2 rounded-lg font-semibold transition duration-300">Reset Game</button>
+    </div>
+    <button id="hintButton" class="mt-4 bg-yellow-500 hover:bg-yellow-600 px-4 py-2 rounded-lg font-semibold hint-button mx-auto block" style="display: none;">Get a Hint (Costs 5 Score Points)</button>
+    
+    <p id="feedback" class="feedback text-center mt-6 animate-bounce" style="visibility: hidden;"></p>
+  </div>
+
+  <script>
+    let targetNumber = 0;
+    let attempts = 0;
+    let score = 100;
+    let gameActive = false;
+
+    const guessInput = document.getElementById('guessInput');
+    const guessButton = document.getElementById('guessButton');
+    const resetButton = document.getElementById('resetButton');
+    const hintButton = document.getElementById('hintButton');
+    const feedback = document.getElementById('feedback');
+    const attemptsDisplay = document.getElementById('attempts');
+    const scoreDisplay = document.getElementById('score');
+    const scoreFill = document.getElementById('scoreFill');
+
+    function startNewGame() {
+      targetNumber = Math.floor(Math.random() * 100) + 1;
+      attempts = 0;
+      score = 100;
+      gameActive = true;
+      guessInput.value = '';
+      feedback.textContent = '';
+      feedback.style.visibility = 'hidden';
+      hintButton.style.display = 'none';
+      updateDisplay();
+    }
+
+    function updateDisplay() {
+      attemptsDisplay.textContent = attempts;
+      scoreDisplay.textContent = score;
+      scoreFill.style.width = Math.max(0, score) + '%';
+    }
+
+    function showFeedback(message, type) {
+      feedback.textContent = message;
+      feedback.style.visibility = 'visible';
+      if (type === 'success') feedback.style.color = '#6bcf7f';
+      else if (type === 'hint') feedback.style.color = '#ffd93d';
+      else feedback.style.color = '#ff6b6b';
+      setTimeout(() => {
+        feedback.style.visibility = 'hidden';
+      }, 2000);
+    }
+
+    guessButton.addEventListener('click', () => {
+      if (!gameActive) startNewGame();
+      const guess = parseInt(guessInput.value);
+      if (!guess || guess < 1 || guess > 100) {
+        showFeedback('Please enter a valid number between 1 and 100.', 'error');
+        return;
+      }
+      attempts++;
+      score = Math.max(0, score - 1); // Deduct 1 point per attempt
+      
+      if (guess === targetNumber) {
+        gameActive = false;
+        showFeedback(`Correct! You guessed it in ${attempts} attempts. Final Score: ${score}`, 'success');
+        hintButton.style.display = 'none';
+      } else if (guess < targetNumber) {
+        showFeedback('Too low! Guess higher.', 'error');
+        if (attempts >= 3) hintButton.style.display = 'inline-block';
+      } else {
+        showFeedback('Too high! Guess lower.', 'error');
+        if (attempts >= 3) hintButton.style.display = 'inline-block';
+      }
+      updateDisplay();
+    });
+
+    hintButton.addEventListener('click', () => {
+      if (score < 5) {
+        showFeedback('Not enough score for a hint!', 'error');
+        return;
+      }
+      score -= 5;
+      const quarter = Math.ceil(targetNumber / 25);
+      showFeedback(`Hint: The number is in the ${quarter === 1 ? 'first' : quarter === 2 ? 'second' : quarter === 3 ? 'third' : 'fourth'} quarter (1-25, 26-50, 51-75, 76-100).`, 'hint');
+      updateDisplay();
+    });
+
+    resetButton.addEventListener('click', startNewGame);
+
+    // Start the first game
+    startNewGame();
+    
+    // Allow Enter key to submit guess
+    guessInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') guessButton.click();
+    });
+  </script>
+</body>
+</html>
+</content>
+</create_file>
